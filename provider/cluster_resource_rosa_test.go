@@ -239,7 +239,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
 							  "instance_iam_roles" : {

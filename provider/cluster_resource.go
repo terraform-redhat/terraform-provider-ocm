@@ -17,9 +17,14 @@ limitations under the License.
 package provider
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -226,6 +231,12 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Type:        types.BoolType,
 				Optional:    true,
 			},
+			"thumbprint": {
+				Description: "SHA1-hash value of the root CA of the issuer URL",
+				Type:        types.StringType,
+				Computed:    true,
+				Optional:    true,
+			},
 		},
 	}
 	return
@@ -379,7 +390,6 @@ func (r *ClusterResource) Create(ctx context.Context,
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
 		builder.Proxy(proxy)
 	}
-
 	object, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -696,11 +706,17 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 			Null: true,
 		}
 	}
+
 	sts, ok := object.AWS().GetSTS()
 	if ok {
 		state.Sts = &Sts{}
+		oidc_endpoint_url := sts.OIDCEndpointURL()
+		if strings.HasPrefix(oidc_endpoint_url, "https://") {
+			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
+		}
+
 		state.Sts.OIDCEndpointURL = types.String{
-			Value: sts.OIDCEndpointURL(),
+			Value: oidc_endpoint_url,
 		}
 		state.Sts.RoleARN = types.String{
 			Value: sts.RoleARN(),
@@ -713,6 +729,13 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 		}
 		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
 			Value: sts.InstanceIAMRoles().WorkerRoleARN(),
+		}
+
+		thumbprint, err := getThumbprint(sts.OIDCEndpointURL())
+		if err == nil {
+			state.Thumbprint = types.String{
+				Value: thumbprint,
+			}
 		}
 
 		for _, operatorRole := range sts.OperatorIAMRoles() {
@@ -803,4 +826,41 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	state.State = types.String{
 		Value: string(object.State()),
 	}
+
+}
+
+func getThumbprint(oidcEndpointURL string) (string, error) {
+	connect, err := url.ParseRequestURI(oidcEndpointURL)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := http.Get(fmt.Sprintf("https://%s:443", connect.Host))
+	if err != nil {
+		return "", err
+	}
+
+	certChain := response.TLS.PeerCertificates
+
+	// Grab the CA in the chain
+	for _, cert := range certChain {
+		if cert.IsCA {
+			if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
+				return sha1Hash(cert.Raw), nil
+			}
+		}
+	}
+
+	// Fall back to using the last certficiate in the chain
+	cert := certChain[len(certChain)-1]
+	return sha1Hash(cert.Raw), nil
+}
+
+// sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
+func sha1Hash(data []byte) string {
+	// nolint:gosec
+	hasher := sha1.New()
+	hasher.Write(data)
+	hashed := hasher.Sum(nil)
+	return hex.EncodeToString(hashed)
 }

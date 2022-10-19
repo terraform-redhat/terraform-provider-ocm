@@ -107,4 +107,5 @@ module sts_roles {
         id = ocm_cluster.rosa_cluster.id
         operator_role_prefix = var.operator_role_prefix
     }]
+    rh_oidc_provider_url = ocm_cluster.rosa_cluster.sts.oidc_endpoint_url
 }

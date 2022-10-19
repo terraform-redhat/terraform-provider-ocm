@@ -48,6 +48,7 @@ type ClusterState struct {
 	State              types.String `tfsdk:"state"`
 	Version            types.String `tfsdk:"version"`
 	Wait               types.Bool   `tfsdk:"wait"`
+	Thumbprint         types.String `tfsdk:"thumbprint"`
 }
 
 type Sts struct {
