@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,8 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-package provider
+package ocm_cluster_rosa_classic
 
 import (
 	"bytes"
@@ -35,18 +34,23 @@ import (
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 
-	"github.com/openshift-online/terraform-provider-ocm/provider/ocm_cluster_rosa_classic"
+	"github.com/openshift-online/terraform-provider-ocm/provider"
 )
 
-type ClusterResourceType struct {
+const (
+	awsCloudProvider = "aws"
+	rosaProduct      = "rosa"
+)
+
+type ClusterRosaClassicResourceType struct {
 }
 
-type ClusterResource struct {
+type ClusterRosaClassicResource struct {
 	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
-func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
+func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
 	result = tfsdk.Schema{
 		Description: "OpenShift managed cluster.",
@@ -56,18 +60,8 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"product": {
-				Description: "Product ID OSD or Rosa",
-				Type:        types.StringType,
-				Required:    true,
-			},
 			"name": {
 				Description: "Name of the cluster.",
-				Type:        types.StringType,
-				Required:    true,
-			},
-			"cloud_provider": {
-				Description: "Cloud provider identifier, for example 'aws'.",
 				Type:        types.StringType,
 				Required:    true,
 			},
@@ -78,7 +72,7 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 			},
 			"sts": {
 				Description: "STS Configuration",
-				Attributes:  ocm_cluster_rosa_classic.StsResource(),
+				Attributes:  StsResource(),
 				Optional:    true,
 			},
 			"multi_az": {
@@ -238,16 +232,16 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 	return
 }
 
-func (t *ClusterResourceType) NewResource(ctx context.Context,
+func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider)
+	parent := p.(*provider.Provider)
 
 	// Get the collection of clusters:
 	collection := parent.Connection.ClustersMgmt().V1().Clusters()
 
 	// Create the resource:
-	result = &ClusterResource{
+	result = &ClusterRosaClassicResource{
 		logger:     parent.Logger,
 		collection: collection,
 	}
@@ -255,10 +249,10 @@ func (t *ClusterResourceType) NewResource(ctx context.Context,
 	return
 }
 
-func (r *ClusterResource) Create(ctx context.Context,
+func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
 	// Get the plan:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -268,8 +262,8 @@ func (r *ClusterResource) Create(ctx context.Context,
 	// Create the cluster:
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.Value)
-	builder.CloudProvider(cmv1.NewCloudProvider().ID(state.CloudProvider.Value))
-	builder.Product(cmv1.NewProduct().ID(state.Product.Value))
+	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
+	builder.Product(cmv1.NewProduct().ID(rosaProduct))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.Value))
 	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
 		builder.MultiAZ(state.MultiAZ.Value)
@@ -441,10 +435,10 @@ func (r *ClusterResource) Create(ctx context.Context,
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
+func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse) {
 	// Get the current state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -471,12 +465,12 @@ func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRe
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
+func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse) {
 	var diags diag.Diagnostics
 
 	// Get the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags = request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -484,7 +478,7 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	}
 
 	// Get the plan:
-	plan := &ClusterState{}
+	plan := &ClusterRosaClassicState{}
 	diags = request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -494,7 +488,7 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	// Send request to update the cluster:
 	builder := cmv1.NewCluster()
 	var nodes *cmv1.ClusterNodesBuilder
-	compute, ok := ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
+	compute, ok := provider.ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
 	if ok {
 		nodes.Compute(int(compute))
 	}
@@ -533,10 +527,10 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
+func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
 	response *tfsdk.DeleteResourceResponse) {
 	// Get the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -585,7 +579,7 @@ func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResour
 	response.State.RemoveResource(ctx)
 }
 
-func (r *ClusterResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
+func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
 	// Try to retrieve the object:
 	get, err := r.collection.Cluster(request.ID).Get().SendContext(ctx)
@@ -602,27 +596,21 @@ func (r *ClusterResource) ImportState(ctx context.Context, request tfsdk.ImportR
 	object := get.Body()
 
 	// Save the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	r.populateState(ctx, object, state)
 	diags := response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *ClusterResource) populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterState) {
+func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState) {
 	state.ID = types.String{
 		Value: object.ID(),
 	}
 
 	object.API()
-	state.Product = types.String{
-		Value: object.Product().ID(),
-	}
 	state.Name = types.String{
 		Value: object.Name(),
-	}
-	state.CloudProvider = types.String{
-		Value: object.CloudProvider().ID(),
 	}
 	state.CloudRegion = types.String{
 		Value: object.Region().ID(),

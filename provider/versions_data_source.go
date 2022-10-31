@@ -90,11 +90,11 @@ func (t *VersionsDataSourceType) NewDataSource(ctx context.Context,
 	parent := p.(*Provider)
 
 	// Get the collection of versions:
-	collection := parent.connection.ClustersMgmt().V1().Versions()
+	collection := parent.Connection.ClustersMgmt().V1().Versions()
 
 	// Create the resource:
 	result = &VersionsDataSource{
-		logger:     parent.logger,
+		logger:     parent.Logger,
 		collection: collection,
 	}
 	return

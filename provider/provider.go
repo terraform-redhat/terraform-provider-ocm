@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/openshift-online/terraform-provider-ocm/provider/ocm_cluster_rosa_classic"
 	"os"
 	"strings"
 
@@ -33,8 +34,8 @@ import (
 
 // Provider is the implementation of the Provider.
 type Provider struct {
-	logger     logging.Logger
-	connection *sdk.Connection
+	Logger     logging.Logger
+	Connection *sdk.Connection
 }
 
 // Config contains the configuration of the provider.
@@ -201,18 +202,19 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 	}
 
 	// Save the connection:
-	p.logger = logger
-	p.connection = connection
+	p.Logger = logger
+	p.Connection = connection
 }
 
 // GetResources returns the resources supported by the provider.
 func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.ResourceType,
 	diags diag.Diagnostics) {
 	result = map[string]tfsdk.ResourceType{
-		"ocm_cluster":           &ClusterResourceType{},
-		"ocm_group_membership":  &GroupMembershipResourceType{},
-		"ocm_identity_provider": &IdentityProviderResourceType{},
-		"ocm_machine_pool":      &MachinePoolResourceType{},
+		"ocm_cluster":              &ClusterResourceType{},
+		"ocm_cluster_rosa_classic": &ocm_cluster_rosa_classic.ClusterRosaClassicResourceType{},
+		"ocm_group_membership":     &GroupMembershipResourceType{},
+		"ocm_identity_provider":    &IdentityProviderResourceType{},
+		"ocm_machine_pool":         &MachinePoolResourceType{},
 	}
 	return
 }

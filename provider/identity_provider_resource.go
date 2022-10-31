@@ -227,11 +227,11 @@ func (t *IdentityProviderResourceType) NewResource(ctx context.Context,
 	parent := p.(*Provider)
 
 	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().Clusters()
+	collection := parent.Connection.ClustersMgmt().V1().Clusters()
 
 	// Create the resource:
 	result = &IdentityProviderResource{
-		logger:     parent.logger,
+		logger:     parent.Logger,
 		collection: collection,
 	}
 

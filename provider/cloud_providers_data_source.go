@@ -98,11 +98,11 @@ func (t *CloudProvidersDataSourceType) NewDataSource(ctx context.Context,
 	parent := p.(*Provider)
 
 	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().CloudProviders()
+	collection := parent.Connection.ClustersMgmt().V1().CloudProviders()
 
 	// Create the resource:
 	result = &CloudProvidersDataSource{
-		logger:     parent.logger,
+		logger:     parent.Logger,
 		collection: collection,
 	}
 	return

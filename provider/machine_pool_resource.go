@@ -80,11 +80,11 @@ func (t *MachinePoolResourceType) NewResource(ctx context.Context,
 	parent := p.(*Provider)
 
 	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().Clusters()
+	collection := parent.Connection.ClustersMgmt().V1().Clusters()
 
 	// Create the resource:
 	result = &MachinePoolResource{
-		logger:     parent.logger,
+		logger:     parent.Logger,
 		collection: collection,
 	}
 

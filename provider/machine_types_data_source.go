@@ -91,11 +91,11 @@ func (t *MachineTypesDataSourceType) NewDataSource(ctx context.Context,
 	parent := p.(*Provider)
 
 	// Get the collection of machine types:
-	collection := parent.connection.ClustersMgmt().V1().MachineTypes()
+	collection := parent.Connection.ClustersMgmt().V1().MachineTypes()
 
 	// Create the resource:
 	result = &MachineTypesDataSource{
-		logger:     parent.logger,
+		logger:     parent.Logger,
 		collection: collection,
 	}
 	return
