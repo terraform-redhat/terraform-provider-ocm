@@ -51,21 +51,15 @@ type ClusterRosaClassicState struct {
 }
 
 type Sts struct {
-	OIDCEndpointURL  types.String      `tfsdk:"oidc_endpoint_url"`
-	Thumbprint       types.String      `tfsdk:"thumbprint"`
-	RoleARN          types.String      `tfsdk:"role_arn"`
-	SupportRoleArn   types.String      `tfsdk:"support_role_arn"`
-	InstanceIAMRoles InstanceIAMRole   `tfsdk:"instance_iam_roles"`
-	OperatorIAMRoles []OperatorIAMRole `tfsdk:"operator_iam_roles"`
+	OIDCEndpointURL    types.String    `tfsdk:"oidc_endpoint_url"`
+	Thumbprint         types.String    `tfsdk:"thumbprint"`
+	RoleARN            types.String    `tfsdk:"role_arn"`
+	SupportRoleArn     types.String    `tfsdk:"support_role_arn"`
+	InstanceIAMRoles   InstanceIAMRole `tfsdk:"instance_iam_roles"`
+	OperatorRolePrefix types.String    `tfsdk:"operator_role_prefix"`
 }
 
 type InstanceIAMRole struct {
 	MasterRoleARN types.String `tfsdk:"master_role_arn"`
 	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
-}
-
-type OperatorIAMRole struct {
-	Name      types.String `tfsdk:"name"`
-	Namespace types.String `tfsdk:"namespace"`
-	RoleARN   types.String `tfsdk:"role_arn"`
 }

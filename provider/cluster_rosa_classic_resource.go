@@ -254,6 +254,7 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 
 func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+	r.logger.Info(ctx, "********************  Create 1   **********************")
 	// Get the plan:
 	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state)
@@ -262,6 +263,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		return
 	}
 
+	r.logger.Info(ctx, "********************  Create 2   **********************")
 	// Create the cluster:
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.Value)
@@ -345,15 +347,8 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
-		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
-		for _, operatorRole := range state.Sts.OperatorIAMRoles {
-			r := cmv1.NewOperatorIAMRole()
-			r.Name(operatorRole.Name.Value)
-			r.Namespace(operatorRole.Namespace.Value)
-			r.RoleARN(operatorRole.RoleARN.Value)
-			operatorRoles = append(operatorRoles, r)
-		}
-		sts.OperatorIAMRoles(operatorRoles...)
+		r.logger.Info(ctx, "******************** Create 3 OperatorRolePrefix  **********************")
+		sts = sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
 		aws.STS(sts)
 	}
 
@@ -659,10 +654,16 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 		}
 	}
 
+	//old_operator_prefix := ""
+	//if state.Sts != nil && !state.Sts.OperatorRolePrefix.Unknown && !state.Sts.OperatorRolePrefix.Null {
+	//	old_operator_prefix = state.Sts.OperatorRolePrefix.Value
+	//}
+
 	sts, ok := object.AWS().GetSTS()
 	if ok {
 		state.Sts = &Sts{}
 		oidc_endpoint_url := sts.OIDCEndpointURL()
+		r.logger.Info(ctx, "******************** populate  OIDCEndpointURL %s **********************", oidc_endpoint_url)
 		if strings.HasPrefix(oidc_endpoint_url, "https://") {
 			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
 		}
@@ -695,19 +696,10 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			}
 		}
 
-		for _, operatorRole := range sts.OperatorIAMRoles() {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(),
-				},
-				Namespace: types.String{
-					Value: operatorRole.Namespace(),
-				},
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(),
-				},
-			}
-			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
+		r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", sts.OperatorRolePrefix())
+		state.Sts.OperatorRolePrefix = types.String{
+			Value: sts.OperatorRolePrefix(),
+			//Value: old_operator_prefix,
 		}
 	}
 
@@ -784,6 +776,7 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 		Value: string(object.State()),
 	}
 
+	r.logger.Info(ctx, "******************** populate 5 OperatorRolePrefix value: %s **********************", state.Sts.OperatorRolePrefix.Value)
 }
 
 func getThumbprint(oidcEndpointURL string) (string, error) {

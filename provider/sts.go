@@ -43,28 +43,10 @@ func StsResource() tfsdk.NestedAttributes {
 			}),
 			Required: true,
 		},
-		"operator_iam_roles": {
-			Description: "Operator IAM Roles",
-			Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-				"name": {
-					Description: "Operator Name",
-					Type:        types.StringType,
-					Required:    true,
-				},
-				"namespace": {
-					Description: "Kubernetes Namespace",
-					Type:        types.StringType,
-					Required:    true,
-				},
-				"role_arn": {
-					Description: "AWS Role ARN",
-					Type:        types.StringType,
-					Required:    true,
-				},
-			}, tfsdk.ListNestedAttributesOptions{
-				MinItems: 6,
-				MaxItems: 6}),
-			Required: true,
+		"operator_role_prefix": {
+			Description: "prefix for operator role ",
+			Type:        types.StringType,
+			Required:    true,
 		},
 	})
 }
