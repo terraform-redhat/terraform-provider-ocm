@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -68,7 +70,7 @@ func (t *GroupMembershipResourceType) GetSchema(ctx context.Context) (result tfs
 }
 
 func (t *GroupMembershipResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
+	p provider.Provider) (result resource.Resource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation: use it directly when needed.
 	parent := p.(*Provider)
 
@@ -85,7 +87,7 @@ func (t *GroupMembershipResourceType) NewResource(ctx context.Context,
 }
 
 func (r *GroupMembershipResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+	request resource.CreateRequest, response *resource.CreateResponse) {
 	// Get the plan:
 	state := &GroupMembershipState{}
 	diags := request.Plan.Get(ctx, state)
@@ -149,8 +151,8 @@ func (r *GroupMembershipResource) Create(ctx context.Context,
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *GroupMembershipResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (r *GroupMembershipResource) Read(ctx context.Context, request resource.CreateRequest,
+	response *resource.CreateResponse) {
 	// Get the current state:
 	state := &GroupMembershipState{}
 	diags := request.State.Get(ctx, state)
@@ -183,12 +185,12 @@ func (r *GroupMembershipResource) Read(ctx context.Context, request tfsdk.ReadRe
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *GroupMembershipResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (r *GroupMembershipResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 }
 
-func (r *GroupMembershipResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (r *GroupMembershipResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	// Get the state:
 	state := &GroupMembershipState{}
 	diags := request.State.Get(ctx, state)
@@ -218,9 +220,9 @@ func (r *GroupMembershipResource) Delete(ctx context.Context, request tfsdk.Dele
 	response.State.RemoveResource(ctx)
 }
 
-func (r *GroupMembershipResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(
+func (r *GroupMembershipResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
+	resource.ResourceImportStatePassthroughID(
 		ctx,
 		tftypes.NewAttributePath().WithAttributeName("id"),
 		request,

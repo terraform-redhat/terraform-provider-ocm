@@ -19,7 +19,9 @@ package provider
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -85,7 +87,7 @@ func (t *VersionsDataSourceType) itemAttributes() map[string]tfsdk.Attribute {
 }
 
 func (t *VersionsDataSourceType) NewDataSource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.DataSource, diags diag.Diagnostics) {
+	p provider.Provider) (result datasource.DataSource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
@@ -100,8 +102,8 @@ func (t *VersionsDataSourceType) NewDataSource(ctx context.Context,
 	return
 }
 
-func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse) {
+func (s *VersionsDataSource) Read(ctx context.Context, request datasource.ReadRequest,
+	response *datasource.ReadResponse) {
 	// Get the state:
 	state := &VersionsState{}
 	diags := request.Config.Get(ctx, state)
