@@ -696,11 +696,32 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			}
 		}
 
-		r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", sts.OperatorRolePrefix())
-		state.Sts.OperatorRolePrefix = types.String{
-			Value: sts.OperatorRolePrefix(),
-			//Value: old_operator_prefix,
+		for _, operatorRole := range sts.OperatorIAMRoles() {
+			r := OperatorIAMRole{
+				Name: types.String{
+					Value: operatorRole.Name(),
+				},
+				Namespace: types.String{
+					Value: operatorRole.Namespace(),
+				},
+				RoleARN: types.String{
+					Value: operatorRole.RoleARN(),
+				},
+			}
+			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
 		}
+
+		prefix, ok := sts.GetOperatorRolePrefix()
+		if ok {
+			r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", prefix)
+		} else {
+			r.logger.Info(ctx, "******************** NOT OK *********************")
+		}
+		//r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", sts.OperatorRolePrefix())
+		//state.Sts.OperatorRolePrefix = types.String{
+		//	Value: sts.OperatorRolePrefix(),
+		//	//Value: old_operator_prefix,
+		//}
 	}
 
 	subnetIds, ok := object.AWS().GetSubnetIDs()
