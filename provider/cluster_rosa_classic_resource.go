@@ -659,11 +659,6 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 		}
 	}
 
-	//old_operator_prefix := ""
-	//if state.Sts != nil && !state.Sts.OperatorRolePrefix.Unknown && !state.Sts.OperatorRolePrefix.Null {
-	//	old_operator_prefix = state.Sts.OperatorRolePrefix.Value
-	//}
-
 	sts, ok := object.AWS().GetSTS()
 	if ok {
 		state.Sts = &Sts{}
@@ -702,27 +697,27 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 		}
 
 		// TODO:  add validation!!!
-		//computedOperatorRoles := []OperatorIAMRole{}
-		//for _, operatorRole := range sts.OperatorIAMRoles() {
-		//	r.logger.Info(ctx, "******************** populate  operator role %s, %s, %s **********************", operatorRole.Name(), operatorRole.Namespace(), operatorRole.Namespace())
-		//	tempRole := OperatorIAMRole{
-		//		Name: types.String{
-		//			Value: operatorRole.Name(),
-		//		},
-		//		Namespace: types.String{
-		//			Value: operatorRole.Namespace(),
-		//		},
-		//		RoleARN: types.String{
-		//			Value: operatorRole.RoleARN(),
-		//		},
-		//	}
-		//	computedOperatorRoles = append(computedOperatorRoles, tempRole)
-		//}
-		//state.Sts.OperatorIAMRoles = &computedOperatorRoles
-		//r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", sts.OperatorRolePrefix())
-		//state.Sts.OperatorRolePrefix = types.String{
-		//	Value: sts.OperatorRolePrefix(),
-		//}
+		computedOperatorRoles := []OperatorIAMRole{}
+		for _, operatorRole := range sts.OperatorIAMRoles() {
+			r.logger.Info(ctx, "******************** populate  operator role %s, %s, %s **********************", operatorRole.Name(), operatorRole.Namespace(), operatorRole.Namespace())
+			tempRole := OperatorIAMRole{
+				Name: types.String{
+					Value: operatorRole.Name(),
+				},
+				Namespace: types.String{
+					Value: operatorRole.Namespace(),
+				},
+				RoleARN: types.String{
+					Value: operatorRole.RoleARN(),
+				},
+			}
+			computedOperatorRoles = append(computedOperatorRoles, tempRole)
+		}
+		state.Sts.OperatorIAMRoles = &computedOperatorRoles
+		r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", sts.OperatorRolePrefix())
+		state.Sts.OperatorRolePrefix = types.String{
+			Value: sts.OperatorRolePrefix(),
+		}
 	}
 
 	subnetIds, ok := object.AWS().GetSubnetIDs()

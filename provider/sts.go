@@ -50,65 +50,31 @@ func StsResource() tfsdk.NestedAttributes {
 		},
 
 		"operator_iam_roles": {
-			Description: "operator iam roles",
-			Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-				"roles": {
-					Description: "Role ",
-					Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-						"name": {
-							Description: "Operator Name",
-							Type:        types.StringType,
-							Optional:    true,
-							Computed:    true,
-						},
-						"namespace": {
-							Description: "Kubernetes Namespace",
-							Type:        types.StringType,
-							Optional:    true,
-							Computed:    true,
-						},
-						"role_arn": {
-							Description: "AWS Role ARN",
-							Type:        types.StringType,
-							Optional:    true,
-							Computed:    true,
-						},
-					}, tfsdk.ListNestedAttributesOptions{
-						MaxItems: 6}),
-					Optional: true,
-					Computed: true,
+			Description: "Operator IAM Roles",
+			Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+				"name": {
+					Description: "Operator Name",
+					Type:        types.StringType,
+					Optional:    true,
+					Computed:    true,
 				},
-			}),
+				"namespace": {
+					Description: "Kubernetes Namespace",
+					Type:        types.StringType,
+					Optional:    true,
+					Computed:    true,
+				},
+				"role_arn": {
+					Description: "AWS Role ARN",
+					Type:        types.StringType,
+					Optional:    true,
+					Computed:    true,
+				},
+			}, tfsdk.ListNestedAttributesOptions{
+				MinItems: 6,
+				MaxItems: 6}),
 			Optional: true,
 		},
-
-		//"operator_iam_roles": {
-		//	Description: "Operator IAM Roles",
-		//	Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-		//		"name": {
-		//			Description: "Operator Name",
-		//			Type:        types.StringType,
-		//			Optional:    true,
-		//			Computed:    true,
-		//		},
-		//		"namespace": {
-		//			Description: "Kubernetes Namespace",
-		//			Type:        types.StringType,
-		//			Optional:    true,
-		//			Computed:    true,
-		//		},
-		//		"role_arn": {
-		//			Description: "AWS Role ARN",
-		//			Type:        types.StringType,
-		//			Optional:    true,
-		//			Computed:    true,
-		//		},
-		//	}, tfsdk.ListNestedAttributesOptions{
-		//		MinItems: 6,
-		//		MaxItems: 6}),
-		//	Optional: true,
-		//	Computed: true,
-		//},
 	})
 }
 
