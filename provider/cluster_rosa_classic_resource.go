@@ -258,6 +258,11 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	// Get the plan:
 	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state)
+	for _, diag := range diags {
+		r.logger.Info(ctx, "********************  Diag detail   %s   **********************", diag.Detail())
+		r.logger.Info(ctx, "********************  Diag summary   %s   **********************", diag.Summary())
+		r.logger.Info(ctx, "********************  Diag summary   %s   **********************", diag.Summary())
+	}
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
 		return
@@ -348,7 +353,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		sts.InstanceIAMRoles(instanceIamRoles)
 
 		r.logger.Info(ctx, "******************** Create 3 OperatorRolePrefix  **********************")
-		sts = sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
+		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
 		aws.STS(sts)
 	}
 
@@ -696,31 +701,27 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			}
 		}
 
-		for _, operatorRole := range sts.OperatorIAMRoles() {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(),
-				},
-				Namespace: types.String{
-					Value: operatorRole.Namespace(),
-				},
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(),
-				},
-			}
-			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
-		}
-
-		prefix, ok := sts.GetOperatorRolePrefix()
-		if ok {
-			r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", prefix)
-		} else {
-			r.logger.Info(ctx, "******************** NOT OK *********************")
-		}
+		// TODO:  add validation!!!
+		//computedOperatorRoles := []OperatorIAMRole{}
+		//for _, operatorRole := range sts.OperatorIAMRoles() {
+		//	r.logger.Info(ctx, "******************** populate  operator role %s, %s, %s **********************", operatorRole.Name(), operatorRole.Namespace(), operatorRole.Namespace())
+		//	tempRole := OperatorIAMRole{
+		//		Name: types.String{
+		//			Value: operatorRole.Name(),
+		//		},
+		//		Namespace: types.String{
+		//			Value: operatorRole.Namespace(),
+		//		},
+		//		RoleARN: types.String{
+		//			Value: operatorRole.RoleARN(),
+		//		},
+		//	}
+		//	computedOperatorRoles = append(computedOperatorRoles, tempRole)
+		//}
+		//state.Sts.OperatorIAMRoles = &computedOperatorRoles
 		//r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", sts.OperatorRolePrefix())
 		//state.Sts.OperatorRolePrefix = types.String{
 		//	Value: sts.OperatorRolePrefix(),
-		//	//Value: old_operator_prefix,
 		//}
 	}
 

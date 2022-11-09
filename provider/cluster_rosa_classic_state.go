@@ -57,12 +57,16 @@ type Sts struct {
 	SupportRoleArn     types.String      `tfsdk:"support_role_arn"`
 	InstanceIAMRoles   InstanceIAMRole   `tfsdk:"instance_iam_roles"`
 	OperatorRolePrefix types.String      `tfsdk:"operator_role_prefix"`
-	OperatorIAMRoles   []OperatorIAMRole `tfsdk:"operator_iam_roles"`
+	OperatorIAMRoles   *OperatorIAMRoles `tfsdk:"operator_iam_roles"`
 }
 
 type InstanceIAMRole struct {
 	MasterRoleARN types.String `tfsdk:"master_role_arn"`
 	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
+}
+
+type OperatorIAMRoles struct {
+	Roles []OperatorIAMRole `tfsdk:"roles"`
 }
 
 type OperatorIAMRole struct {
