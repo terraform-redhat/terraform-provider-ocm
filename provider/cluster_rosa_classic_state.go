@@ -48,16 +48,20 @@ type ClusterRosaClassicState struct {
 	Proxy              *Proxy       `tfsdk:"proxy"`
 	State              types.String `tfsdk:"state"`
 	Version            types.String `tfsdk:"version"`
+	//OperatorIAMRoles   types.List   `tfsdk:"operator_iam_roles"`
+	OperatorIAMRoles OperatorIAMRoleInfo `tfsdk:"operator_iam_roles"`
 }
 
 type Sts struct {
-	OIDCEndpointURL    types.String       `tfsdk:"oidc_endpoint_url"`
-	Thumbprint         types.String       `tfsdk:"thumbprint"`
-	RoleARN            types.String       `tfsdk:"role_arn"`
-	SupportRoleArn     types.String       `tfsdk:"support_role_arn"`
-	InstanceIAMRoles   InstanceIAMRole    `tfsdk:"instance_iam_roles"`
-	OperatorRolePrefix types.String       `tfsdk:"operator_role_prefix"`
-	OperatorIAMRoles   *[]OperatorIAMRole `tfsdk:"operator_iam_roles"`
+	OIDCEndpointURL    types.String    `tfsdk:"oidc_endpoint_url"`
+	Thumbprint         types.String    `tfsdk:"thumbprint"`
+	RoleARN            types.String    `tfsdk:"role_arn"`
+	SupportRoleArn     types.String    `tfsdk:"support_role_arn"`
+	InstanceIAMRoles   InstanceIAMRole `tfsdk:"instance_iam_roles"`
+	OperatorRolePrefix types.String    `tfsdk:"operator_role_prefix"`
+	//OperatorIAMRoles   *OperatorIAMRoles `tfsdk:"operator_iam_roles"`
+	//OperatorIAMRoles   []OperatorIAMRoleInfo `tfsdk:"operator_iam_roles"`
+	//OperatorIAMRoles []types.Object `tfsdk:"operator_iam_roles"`
 }
 
 type InstanceIAMRole struct {
@@ -65,8 +69,17 @@ type InstanceIAMRole struct {
 	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
 }
 
-type OperatorIAMRole struct {
-	Name      types.String `tfsdk:"name"`
-	Namespace types.String `tfsdk:"namespace"`
-	RoleARN   types.String `tfsdk:"role_arn"`
+type OperatorIAMRoles struct {
+	CloudCredentialRole *OperatorIAMRoleInfo `tfsdk:"cloud_credential_role"`
+	CloudNetworkConfig  *OperatorIAMRoleInfo `tfsdk:"cloud_network_config"`
+	CsiDriversRole      *OperatorIAMRoleInfo `tfsdk:"csi_drivers_role"`
+	ImageRegistryRole   *OperatorIAMRoleInfo `tfsdk:"image_registry_role"`
+	IngressOperatorRole *OperatorIAMRoleInfo `tfsdk:"ingress_operator_role"`
+	MachineApiRole      *OperatorIAMRoleInfo `tfsdk:"machine_api_role"`
+}
+
+type OperatorIAMRoleInfo struct {
+	Name            types.String `tfsdk:"name"`
+	Namespace       types.String `tfsdk:"namespace"`
+	OperatorRoleARN types.String `tfsdk:"operator_role_arn"`
 }

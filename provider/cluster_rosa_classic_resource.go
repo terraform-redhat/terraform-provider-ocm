@@ -73,7 +73,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 			"sts": {
 				Description: "STS Configuration",
 				Attributes:  StsResource(),
-				Optional:    true,
+				Required:    true,
 			},
 			"multi_az": {
 				Description: "Indicates if the cluster should be deployed to " +
@@ -229,6 +229,53 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Description: "State of the cluster.",
 				Type:        types.StringType,
 				Computed:    true,
+			},
+			"operator_iam_roles": {
+				Description: "Operator IAM Roles",
+				//Type: types.ListType{
+				//	ElemType: types.ObjectType{
+				//		AttrTypes: map[string]attr.Type{
+				//			"name":              types.StringType,
+				//			"namespace":         types.StringType,
+				//			"operator_role_arn": types.StringType,
+				//		},
+				//	},
+				//},
+
+				Type: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"name":              types.StringType,
+						"namespace":         types.StringType,
+						"operator_role_arn": types.StringType,
+					},
+				},
+
+				//Attributes: tfsdk.SingleNestedAttributes(
+				//	OperatorRoleInfo(),
+				//),
+
+				//Attributes: tfsdk.ListNestedAttributes(
+				//	OperatorRoleInfo(),
+				//	tfsdk.ListNestedAttributesOptions{},
+				//),
+
+				//Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+				//	"name": {
+				//		Type:     types.StringType,
+				//		Computed: true,
+				//		PlanModifiers: tfsdk.AttributePlanModifiers{
+				//			tfsdk.UseStateForUnknownModifier{},
+				//		},
+				//	},
+				//}, tfsdk.ListNestedAttributesOptions{}),
+				//PlanModifiers: tfsdk.AttributePlanModifiers{
+				//	tfsdk.UseStateForUnknownModifier{},
+				//},
+				Computed: true,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
 		},
 	}
@@ -696,24 +743,53 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			}
 		}
 
-		// TODO:  add validation!!!
-		computedOperatorRoles := []OperatorIAMRole{}
-		for _, operatorRole := range sts.OperatorIAMRoles() {
-			r.logger.Info(ctx, "******************** populate  operator role %s, %s, %s **********************", operatorRole.Name(), operatorRole.Namespace(), operatorRole.Namespace())
-			tempRole := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(),
-				},
-				Namespace: types.String{
-					Value: operatorRole.Namespace(),
-				},
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(),
-				},
-			}
-			computedOperatorRoles = append(computedOperatorRoles, tempRole)
+		//roles := OperatorIAMRoles{
+		//	CloudCredentialRole: &OperatorIAMRoleInfo{
+		//		Name:            types.String{Value: "Test name"},
+		//		Namespace:       types.String{Value: "Test namespace"},
+		//		OperatorRoleARN: types.String{Value: "Test role arn"},
+		//	},
+		//	CloudNetworkConfig:  nil,
+		//	CsiDriversRole:      nil,
+		//	ImageRegistryRole:   nil,
+		//	IngressOperatorRole: nil,
+		//	MachineApiRole:      nil,
+		//}
+		//state.Sts.OperatorIAMRoles = &roles
+		//operator := types.List{
+		//	Elems:    nil,
+		//	ElemType: nil,
+		//}
+
+		state.OperatorIAMRoles = OperatorIAMRoleInfo{
+			Name:            types.String{Value: "Test1"},
+			Namespace:       types.String{Value: "Test2"},
+			OperatorRoleARN: types.String{Value: "Test3"},
 		}
-		state.Sts.OperatorIAMRoles = &computedOperatorRoles
+
+		//operators := []*OperatorIAMRoleInfo{}
+		//operators = append(operators, &operator)
+		//state.OperatorIAMRoles = operators
+		//state.Sts.OperatorIAMRoles = []types.Object{attr.TypeWithAttributeTypes():
+
+		//computedOperatorRoles := []OperatorIAMRole{}
+		//for _, operatorRole := range sts.OperatorIAMRoles() {
+		//	r.logger.Info(ctx, "******************** populate  operator role %s, %s, %s **********************", operatorRole.Name(), operatorRole.Namespace(), operatorRole.Namespace())
+		//	tempRole := OperatorIAMRole{
+		//		Name: types.String{
+		//			Value: operatorRole.Name(),
+		//		},
+		//		Namespace: types.String{
+		//			Value: operatorRole.Namespace(),
+		//		},
+		//		RoleARN: types.String{
+		//			Value: operatorRole.RoleARN(),
+		//		},
+		//	}
+		//	computedOperatorRoles = append(computedOperatorRoles, tempRole)
+		//}
+		//state.Sts.OperatorIAMRoles = &computedOperatorRoles
+
 		r.logger.Info(ctx, "******************** populate  OperatorRolePrefix %s **********************", sts.OperatorRolePrefix())
 		state.Sts.OperatorRolePrefix = types.String{
 			Value: sts.OperatorRolePrefix(),

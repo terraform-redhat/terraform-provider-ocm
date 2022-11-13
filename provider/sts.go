@@ -49,51 +49,76 @@ func StsResource() tfsdk.NestedAttributes {
 			Required:    true,
 		},
 
-		"operator_iam_roles": {
-			Description: "Operator IAM Roles",
-			Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-				"name": {
-					Description: "Operator Name",
-					Type:        types.StringType,
-					Optional:    true,
-					Computed:    true,
-				},
-				"namespace": {
-					Description: "Kubernetes Namespace",
-					Type:        types.StringType,
-					Optional:    true,
-					Computed:    true,
-				},
-				"role_arn": {
-					Description: "AWS Role ARN",
-					Type:        types.StringType,
-					Optional:    true,
-					Computed:    true,
-				},
-			}, tfsdk.ListNestedAttributesOptions{
-				MinItems: 6,
-				MaxItems: 6}),
-			Optional: true,
-		},
+		//"operator_iam_roles": {
+		//	Description: "Operator IAM Roles",
+		//	Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+		//		"name": {
+		//			Type:     types.StringType,
+		//			Computed: true,
+		//			PlanModifiers: tfsdk.AttributePlanModifiers{
+		//				tfsdk.RequiresReplace(),
+		//			},
+		//		},
+		//	}, tfsdk.ListNestedAttributesOptions{}),
+		//	PlanModifiers: tfsdk.AttributePlanModifiers{
+		//		tfsdk.RequiresReplace(),
+		//	},
+		//	Computed: true,
+		//Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		//	"cloud_credential_role": {
+		//		Description: "Cloud Credential Role",
+		//		Attributes:  OperatorRoleInfo(),
+		//		Optional:    true,
+		//	},
+		//	"cloud_network_config": {
+		//		Description: "Cloud Network Config Role",
+		//		Attributes:  OperatorRoleInfo(),
+		//		Optional:    true,
+		//	},
+		//	"csi_drivers_role": {
+		//		Description: "Csi Drivers Role",
+		//		Attributes:  OperatorRoleInfo(),
+		//		Optional:    true,
+		//	},
+		//	"image_registry_role": {
+		//		Description: "Image Registry Role",
+		//		Attributes:  OperatorRoleInfo(),
+		//		Optional:    true,
+		//	},
+		//	"ingress_operator_role": {
+		//		Description: "Ingress Operator Role",
+		//		Attributes:  OperatorRoleInfo(),
+		//		Optional:    true,
+		//	},
+		//	"machine_api_role": {
+		//		Description: "Machine Api Role",
+		//		Attributes:  OperatorRoleInfo(),
+		//		Optional:    true,
+		//	},
+		//}),
+		//PlanModifiers: tfsdk.AttributePlanModifiers{
+		//	tfsdk.UseStateForUnknown(),
+		//},
+		//},
 	})
 }
 
-func OperatorIAMRolesResource() map[string]tfsdk.Attribute {
+func OperatorRoleInfo() map[string]tfsdk.Attribute {
 	return map[string]tfsdk.Attribute{
 		"name": {
-			Description: "Operator Name",
+			Description: "operator role name",
 			Type:        types.StringType,
 			Computed:    true,
 		},
 		"namespace": {
-			Description: "Kubernetes Namespace",
+			Description: "operator role namespace",
 			Type:        types.StringType,
-			Optional:    true,
+			Computed:    true,
 		},
-		"role_arn": {
-			Description: "AWS Role ARN",
+		"operator_role_arn": {
+			Description: "operator role arn",
 			Type:        types.StringType,
-			Optional:    true,
+			Computed:    true,
 		},
 	}
 }
