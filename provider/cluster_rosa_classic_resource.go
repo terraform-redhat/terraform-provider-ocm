@@ -21,17 +21,21 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/openshift/rosa/pkg/ocm"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
+	"time"
 
 	semver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	rosa_aws "github.com/openshift/rosa/pkg/aws"
 )
 
 const (
@@ -44,8 +48,10 @@ type ClusterRosaClassicResourceType struct {
 }
 
 type ClusterRosaClassicResource struct {
-	logger     logging.Logger
-	collection *cmv1.ClustersClient
+	logger         logging.Logger
+	clusterClient  *cmv1.ClustersClient
+	versionsClient *cmv1.VersionsClient
+	OCMClient      *ocm.Client
 }
 
 func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
@@ -162,7 +168,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional: true,
 			},
 			"aws_private_link": {
-				Description: "aws subnet ids",
+				Description: "aws private link",
 				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
@@ -243,13 +249,18 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
-	// Get the collection:
-	collection := parent.connection.ClustersMgmt().V1().Clusters()
+	// Get the clusterClient:
+	clusterClient := parent.connection.ClustersMgmt().V1().Clusters()
+
+	// Get the versions
+	versionsClient := parent.connection.ClustersMgmt().V1().Versions()
 
 	// Create the resource:
 	result = &ClusterRosaClassicResource{
-		logger:     parent.logger,
-		collection: collection,
+		logger:         parent.logger,
+		clusterClient:  clusterClient,
+		versionsClient: versionsClient,
+		OCMClient:      ocm.CreateNewClientUsingExistingConnection(parent.connection),
 	}
 
 	return
@@ -426,7 +437,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		)
 		return
 	}
-	add, err := r.collection.Add().Body(object).SendContext(ctx)
+	add, err := r.clusterClient.Add().Body(object).SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't create cluster",
@@ -456,7 +467,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 	}
 
 	// Find the cluster:
-	get, err := r.collection.Cluster(state.ID.Value).Get().SendContext(ctx)
+	get, err := r.clusterClient.Cluster(state.ID.Value).Get().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
@@ -495,8 +506,47 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		return
 	}
 
-	// Send request to update the cluster:
+	//check if cluster is ready
+	cluster, err := r.getCluster(ctx, state.ID.Value)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't find cluster",
+			fmt.Sprintf(
+				"Can't find cluster with identifier '%s': %v",
+				state.ID.Value, err,
+			))
+		return
+	}
+
+	if cluster.State() != cmv1.ClusterStateReady {
+		response.Diagnostics.AddError(
+			"Cluster is not yet ready",
+			fmt.Sprintf(
+				"Cluster '%s' is not yet ready, cuurect state: %s",
+				state.ID.Value, cluster.State(),
+			))
+		return
+	}
+
 	builder := cmv1.NewCluster()
+
+	// update cluster
+	version, ok := shouldPatchString(state.Version, plan.Version)
+	if ok {
+		mode := rosa_aws.ModeAuto
+		// Set the default next run within the next 10 minutes
+		now := time.Now().UTC().Add(time.Minute * 10)
+		scheduleDate := now.Format("2006-01-02")
+		scheduleTime := now.Format("15:04")
+
+		policyVersion, err = ocmClient.GetPolicyVersion(version, channelGroup)
+
+		if err != nil {
+
+		}
+
+	}
+
 	var nodes *cmv1.ClusterNodesBuilder
 	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
 	if ok {
@@ -516,7 +566,8 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		)
 		return
 	}
-	update, err := r.collection.Cluster(state.ID.Value).Update().
+
+	update, err := r.clusterClient.Cluster(state.ID.Value).Update().
 		Body(patch).
 		SendContext(ctx)
 	if err != nil {
@@ -537,6 +588,79 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	response.Diagnostics.Append(diags...)
 }
 
+func (r *ClusterRosaClassicResource) updateCluster(cluster *cmv1.Cluster, version string) {
+
+}
+
+func (r *ClusterRosaClassicResource) GetPolicyVersionsList() ([]string, error) {
+	response, err := r.GetVersions()
+	if err != nil {
+		err := fmt.Errorf("error getting versions: %s", err)
+		return make([]string, 0), err
+	}
+	versionList := make([]string, 0)
+	for _, v := range response {
+		if !HasSTSSupport(v.RawID(), v.ChannelGroup()) {
+			continue
+		}
+		parsedVersion, err := ParseVersion(v.RawID())
+		if err != nil {
+			err = fmt.Errorf("error parsing version")
+			return versionList, err
+		}
+		versionList = append(versionList, parsedVersion)
+	}
+
+	if len(versionList) == 0 {
+		err = fmt.Errorf("could not find versions for the provided channel-group: '%s'", channelGroup)
+		return versionList, err
+	}
+	return versionList, nil
+}
+
+func (r *ClusterRosaClassicResource) GetVersions() (versions []*cmv1.Version, err error) {
+	collection := r.versionsClient
+	page := 1
+	size := 100
+	filter := "enabled = 'true' AND rosa_enabled = 'true' AND channel_group = 'stable'"
+
+	for {
+		var response *cmv1.VersionsListResponse
+		response, err = collection.List().
+			Search(filter).
+			Order("default desc, id desc").
+			Page(page).
+			Size(size).
+			Send()
+		if err != nil {
+			return nil, err
+		}
+		versions = append(versions, response.Items().Slice()...)
+		if response.Size() < size {
+			break
+		}
+		page++
+	}
+
+	// Sort list in descending order, ensuring the 'default' version at the top
+	sort.Slice(versions, func(i, j int) bool {
+		if versions[i].Default() {
+			return true
+		}
+		if versions[j].Default() {
+			return false
+		}
+		a, erra := semver.NewVersion(versions[i].RawID())
+		b, errb := semver.NewVersion(versions[j].RawID())
+		if erra != nil || errb != nil {
+			return false
+		}
+		return a.GreaterThan(b)
+	})
+
+	return
+}
+
 func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
 	response *tfsdk.DeleteResourceResponse) {
 	// Get the state:
@@ -548,7 +672,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 	}
 
 	// Send the request to delete the cluster:
-	resource := r.collection.Cluster(state.ID.Value)
+	resource := r.clusterClient.Cluster(state.ID.Value)
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -568,7 +692,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
 	// Try to retrieve the object:
-	get, err := r.collection.Cluster(request.ID).Get().SendContext(ctx)
+	get, err := r.clusterClient.Cluster(request.ID).Get().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
@@ -803,6 +927,15 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 
 }
 
+func (r *ClusterRosaClassicResource) getCluster(ctx context.Context, clusterID string) (*cmv1.Cluster, error) {
+	get, err := r.clusterClient.Cluster(clusterID).Get().SendContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	object := get.Body()
+	return object, nil
+}
 func getThumbprint(oidcEndpointURL string) (string, error) {
 	connect, err := url.ParseRequestURI(oidcEndpointURL)
 	if err != nil {
