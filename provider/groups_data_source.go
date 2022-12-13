@@ -18,6 +18,8 @@ package provider
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -72,12 +74,11 @@ func (t *GroupsDataSourceType) itemSchema() tfsdk.NestedAttributes {
 				Computed: true,
 			},
 		},
-		tfsdk.ListNestedAttributesOptions{},
 	)
 }
 
 func (t *GroupsDataSourceType) NewDataSource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.DataSource, diags diag.Diagnostics) {
+	p provider.Provider) (result datasource.DataSource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
@@ -92,8 +93,8 @@ func (t *GroupsDataSourceType) NewDataSource(ctx context.Context,
 	return
 }
 
-func (s *GroupsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse) {
+func (s *GroupsDataSource) Read(ctx context.Context, request datasource.ReadRequest,
+	response *datasource.ReadResponse) {
 	// Get the state:
 	state := &GroupsState{}
 	diags := request.Config.Get(ctx, state)

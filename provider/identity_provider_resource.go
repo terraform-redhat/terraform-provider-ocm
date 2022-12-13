@@ -19,6 +19,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -221,7 +223,7 @@ func (t *IdentityProviderResourceType) openidClaimsSchema() tfsdk.NestedAttribut
 }
 
 func (t *IdentityProviderResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
+	p provider.Provider) (result resource.Resource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation:
 	// use it directly when needed.
 	parent := p.(*Provider)
@@ -239,7 +241,7 @@ func (t *IdentityProviderResourceType) NewResource(ctx context.Context,
 }
 
 func (r *IdentityProviderResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+	request resource.CreateRequest, response *resource.CreateResponse) {
 	// Get the plan:
 	state := &IdentityProviderState{}
 	diags := request.Plan.Get(ctx, state)
@@ -415,8 +417,8 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (r *IdentityProviderResource) Read(ctx context.Context, request resource.ReadRequest,
+	response *resource.ReadResponse) {
 	// Get the current state:
 	state := &IdentityProviderState{}
 	diags := request.State.Get(ctx, state)
@@ -584,12 +586,12 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *IdentityProviderResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (r *IdentityProviderResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 }
 
-func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (r *IdentityProviderResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	// Get the state:
 	state := &IdentityProviderState{}
 	diags := request.State.Get(ctx, state)
@@ -619,9 +621,9 @@ func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.Del
 	response.State.RemoveResource(ctx)
 }
 
-func (r *IdentityProviderResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(
+func (r *IdentityProviderResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(
 		ctx,
 		tftypes.NewAttributePath().WithAttributeName("id"),
 		request,

@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"os"
 	"strings"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+
 	"github.com/openshift-online/terraform-provider-ocm/build"
 )
 
@@ -51,7 +53,7 @@ type Config struct {
 }
 
 // New creates the provider.
-func New() tfsdk.Provider {
+func New() provider.Provider {
 	return &Provider{}
 }
 
@@ -120,8 +122,8 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 
 // configure is the configuration function of the provider. It is responsible for checking the
 // connection parameters and creating the connection that will be used by the resources.
-func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProviderRequest,
-	response *tfsdk.ConfigureProviderResponse) {
+func (p *Provider) Configure(ctx context.Context, request provider.ConfigureRequest,
+	response *provider.ConfigureResponse) {
 	// Retrieve the provider configuration:
 	var config Config
 	diags := request.Config.Get(ctx, &config)
@@ -206,9 +208,9 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 }
 
 // GetResources returns the resources supported by the provider.
-func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.ResourceType,
+func (p *Provider) GetResources(ctx context.Context) (result map[string]provider.ResourceType,
 	diags diag.Diagnostics) {
-	result = map[string]tfsdk.ResourceType{
+	result = map[string]provider.ResourceType{
 		"ocm_cluster":              &ClusterResourceType{},
 		"ocm_cluster_rosa_classic": &ClusterRosaClassicResourceType{},
 		"ocm_group_membership":     &GroupMembershipResourceType{},
@@ -219,9 +221,9 @@ func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.Re
 }
 
 // GetDataSources returns the data sources supported by the provider.
-func (p *Provider) GetDataSources(ctx context.Context) (result map[string]tfsdk.DataSourceType,
+func (p *Provider) GetDataSources(ctx context.Context) (result map[string]provider.DataSourceType,
 	diags diag.Diagnostics) {
-	result = map[string]tfsdk.DataSourceType{
+	result = map[string]provider.DataSourceType{
 		"ocm_cloud_providers":     &CloudProvidersDataSourceType{},
 		"ocm_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
 		"ocm_groups":              &GroupsDataSourceType{},

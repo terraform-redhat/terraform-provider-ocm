@@ -19,6 +19,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"net/http"
 	"time"
 
@@ -76,7 +78,7 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 			},
 			"properties": {
@@ -111,7 +113,7 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 			},
 			"ccs_enabled": {
@@ -150,7 +152,7 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 			},
 			"availability_zones": {
@@ -227,7 +229,7 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 }
 
 func (t *ClusterResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
+	p provider.Provider) (result resource.Resource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
@@ -352,7 +354,7 @@ func createClusterObject(ctx context.Context,
 }
 
 func (r *ClusterResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+	request resource.CreateRequest, response *resource.CreateResponse) {
 	// Get the plan:
 	state := &ClusterState{}
 	diags := request.Plan.Get(ctx, state)
@@ -417,8 +419,8 @@ func (r *ClusterResource) Create(ctx context.Context,
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (r *ClusterResource) Read(ctx context.Context, request resource.ReadRequest,
+	response *resource.ReadResponse) {
 	// Get the current state:
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state)
@@ -447,8 +449,8 @@ func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRe
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (r *ClusterResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 	var diags diag.Diagnostics
 
 	// Get the state:
@@ -509,8 +511,8 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (r *ClusterResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	// Get the state:
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state)
@@ -561,8 +563,8 @@ func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResour
 	response.State.RemoveResource(ctx)
 }
 
-func (r *ClusterResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
+func (r *ClusterResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
 	// Try to retrieve the object:
 	get, err := r.collection.Cluster(request.ID).Get().SendContext(ctx)
 	if err != nil {

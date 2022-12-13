@@ -22,16 +22,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
-
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-
 	semver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -89,7 +89,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 			},
 			"properties": {
@@ -150,7 +150,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 			},
 			"aws_account_id": {
@@ -171,7 +171,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 			},
 			"availability_zones": {
@@ -243,7 +243,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 }
 
 func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
+	p provider.Provider) (result resource.Resource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
@@ -419,7 +419,7 @@ func createClassicClusterObject(ctx context.Context,
 }
 
 func (r *ClusterRosaClassicResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+	request resource.CreateRequest, response *resource.CreateResponse) {
 	// Get the plan:
 	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state)
@@ -458,8 +458,8 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.ReadRequest,
+	response *resource.ReadResponse) {
 	// Get the current state:
 	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state)
@@ -488,8 +488,8 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 	var diags diag.Diagnostics
 
 	// Get the state:
@@ -550,8 +550,8 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	// Get the state:
 	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state)
@@ -578,8 +578,8 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 	response.State.RemoveResource(ctx)
 }
 
-func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
+func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
 	// Try to retrieve the object:
 	get, err := r.collection.Cluster(request.ID).Get().SendContext(ctx)
 	if err != nil {
@@ -844,9 +844,9 @@ func (c DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
 func getThumbprint(oidcEndpointURL string, httpClient HttpClient) (thumbprint string, err error) {
 	defer func() {
 		if panicErr := recover(); panicErr != nil {
-				fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
-				thumbprint = ""
-				err = fmt.Errorf("recovering from: %q", panicErr)
+			fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
+			thumbprint = ""
+			err = fmt.Errorf("recovering from: %q", panicErr)
 		}
 	}()
 
