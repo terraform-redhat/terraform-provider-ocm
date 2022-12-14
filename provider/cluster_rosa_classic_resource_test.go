@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"github.com/openshift-online/terraform-provider-ocm/provider/clusterresource"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -143,7 +144,7 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 		Version: types.String{
 			Value: "4.10",
 		},
-		Proxy: &Proxy{
+		Proxy: &clusterresource.Proxy{
 			HttpProxy: types.String{
 				Value: httpProxy,
 			},
@@ -151,9 +152,7 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 				Value: httpsProxy,
 			},
 		},
-		Sts: &Sts{
-
-		},
+		Sts: &Sts{},
 	}
 }
 

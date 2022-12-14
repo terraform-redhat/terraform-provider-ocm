@@ -17,19 +17,20 @@ limitations under the License.
 package main
 
 import (
-	"context"
-
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-
+	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 	"github.com/openshift-online/terraform-provider-ocm/provider"
 )
 
 func main() {
-	tfsdk.Serve(
-		context.Background(),
-		provider.New,
-		tfsdk.ServeOpts{
-			Name: "ocm",
-		},
-	)
+	plugin.Serve(&plugin.ServeOpts{
+		ProviderFunc: provider.Provider})
 }
+
+//	providerserver.Serve(
+//		context.Background(),
+//		provider.New,
+//		tfsdk.ServeOpts{
+//			Name: "ocm",
+//		},
+//	)
+//}

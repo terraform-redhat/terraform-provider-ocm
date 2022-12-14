@@ -20,82 +20,69 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
-	"os"
-	"strings"
-
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	"github.com/openshift-online/ocm-sdk-go/logging"
-
 	"github.com/openshift-online/terraform-provider-ocm/build"
+	"github.com/openshift-online/terraform-provider-ocm/provider/cloudprovider"
+	"github.com/openshift-online/terraform-provider-ocm/provider/clusterresource"
+	"github.com/openshift-online/terraform-provider-ocm/provider/util"
+	"os"
 )
-
-// Provider is the implementation of the Provider.
-type Provider struct {
-	logger     logging.Logger
-	connection *sdk.Connection
-}
 
 // Config contains the configuration of the provider.
 type Config struct {
-	URL          types.String `tfsdk:"url"`
-	TokenURL     types.String `tfsdk:"token_url"`
-	User         types.String `tfsdk:"user"`
-	Password     types.String `tfsdk:"password"`
-	Token        types.String `tfsdk:"token"`
-	ClientID     types.String `tfsdk:"client_id"`
-	ClientSecret types.String `tfsdk:"client_secret"`
-	TrustedCAs   types.String `tfsdk:"trusted_cas"`
-	Insecure     types.Bool   `tfsdk:"insecure"`
-}
-
-// New creates the provider.
-func New() provider.Provider {
-	return &Provider{}
+	URL              string
+	TokenURL         string
+	User             string
+	Password         string
+	Token            string
+	ClientID         string
+	ClientSecret     string
+	TrustedCAs       string
+	TerraformVersion string
+	Insecure         bool
 }
 
 // Provider creates the schema for the provider.
-func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags diag.Diagnostics) {
-	schema = tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+func Provider() *schema.Provider {
+	p := &schema.Provider{
+		Schema: map[string]*schema.Schema{
 			"url": {
 				Description: "URL of the API server.",
-				Type:        types.StringType,
+				Type:        schema.TypeString,
 				Optional:    true,
 			},
 			"token_url": {
 				Description: "OpenID token URL.",
-				Type:        types.StringType,
+				Type:        schema.TypeString,
 				Optional:    true,
 			},
 			"user": {
 				Description: "User name.",
-				Type:        types.StringType,
+				Type:        schema.TypeString,
 				Optional:    true,
 			},
 			"password": {
 				Description: "User password.",
-				Type:        types.StringType,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
 			},
 			"token": {
 				Description: "Access or refresh token.",
-				Type:        types.StringType,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
 			},
 			"client_id": {
 				Description: "OpenID client identifier.",
-				Type:        types.StringType,
+				Type:        schema.TypeString,
 				Optional:    true,
 			},
 			"client_secret": {
 				Description: "OpenID client secret.",
-				Type:        types.StringType,
+				Type:        schema.TypeString,
 				Optional:    true,
 				Sensitive:   true,
 			},
@@ -104,7 +91,7 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 					"be trusted. If this isn't explicitly specified then " +
 					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
-				Type:     types.StringType,
+				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"insecure": {
@@ -112,85 +99,117 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 					"with the server. This disables verification of TLS " +
 					"certificates and host names and it isn't recommended " +
 					"for production environments.",
-				Type:     types.BoolType,
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 		},
+		ResourcesMap: map[string]*schema.Resource{
+			"ocm_cluster":              clusterresource.ResourceCluster,
+			"ocm_cluster_rosa_classic": &ClusterRosaClassicResourceType{},
+			"ocm_group_membership":     &GroupMembershipResourceType{},
+			"ocm_identity_provider":    &IdentityProviderResourceType{},
+			"ocm_machine_pool":         &MachinePoolResourceType{},
+		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"ocm_cloud_providers":     cloudprovider.DataSourceCloudProvider(),
+			"ocm_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
+			"ocm_groups":              &GroupsDataSourceType{},
+			"ocm_machine_types":       &MachineTypesDataSourceType{},
+			"ocm_versions":            &VersionsDataSourceType{},
+		},
 	}
-	return
+	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		return providerConfigure(ctx, p, d)
+	}
+
+	return p
 }
 
-// configure is the configuration function of the provider. It is responsible for checking the
-// connection parameters and creating the connection that will be used by the resources.
-func (p *Provider) Configure(ctx context.Context, request provider.ConfigureRequest,
-	response *provider.ConfigureResponse) {
-	// Retrieve the provider configuration:
-	var config Config
-	diags := request.Config.Get(ctx, &config)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
+func providerConfigure(ctx context.Context, provider *schema.Provider, d *schema.ResourceData) (*sdk.Connection, diag.Diagnostics) {
+	terraformVersion := provider.TerraformVersion
+	if terraformVersion == "" {
+		// Terraform 0.12 introduced this field to the protocol
+		// We can therefore assume that if it's missing it's 0.10 or 0.11
+		terraformVersion = "0.11+compatible"
+	}
+	config := Config{
+		TerraformVersion: terraformVersion,
 	}
 
-	// Determine the log level used by the SDK from the environment variables used by Terraform:
-	level := os.Getenv("TF_LOG")
+	if v, ok := d.GetOk("url"); ok {
+		config.URL = v.(string)
+	}
 
-	// The plugin infrastructure redirects the log package output so that it is sent to the main
-	// Terraform process, so if we want to have the logs of the SDK redirected we need to use
-	// the log package as well.
-	logger, err := logging.NewGoLoggerBuilder().
-		Error(true).
-		Warn(true).
-		Info(true).
-		Debug(strings.EqualFold(level, "DEBUG")).
-		Build()
-	if err != nil {
-		response.Diagnostics.AddError(err.Error(), "")
-		return
+	if v, ok := d.GetOk("token_url"); ok {
+		config.TokenURL = v.(string)
+	}
+
+	if v, ok := d.GetOk("user"); ok {
+		config.User = v.(string)
+	}
+
+	if v, ok := d.GetOk("password"); ok {
+		config.Password = v.(string)
+	}
+
+	if v, ok := d.GetOk("token"); ok {
+		config.Token = v.(string)
+	}
+
+	if v, ok := d.GetOk("client_id"); ok {
+		config.ClientID = v.(string)
+	}
+
+	if v, ok := d.GetOk("client_secret"); ok {
+		config.ClientSecret = v.(string)
+	}
+
+	if v, ok := d.GetOk("trusted_cas"); ok {
+		config.TrustedCAs = v.(string)
+	}
+
+	if v, ok := d.GetOk("insecure"); ok {
+		config.Insecure = v.(bool)
 	}
 
 	// Create the builder:
 	builder := sdk.NewConnectionBuilder()
-	builder.Logger(logger)
+	builder.Logger(util.Logger)
 	builder.Agent(fmt.Sprintf("OCM-TF/%s-%s", build.Version, build.Commit))
 
 	// Copy the settings:
-	if !config.URL.Null {
-		builder.URL(config.URL.Value)
+	if config.URL != "" {
+		builder.URL(config.URL)
 	} else {
 		url, ok := os.LookupEnv("OCM_URL")
 		if ok {
 			builder.URL(url)
 		}
 	}
-	if !config.TokenURL.Null {
-		builder.TokenURL(config.TokenURL.Value)
+	if config.TokenURL != "" {
+		builder.TokenURL(config.TokenURL)
 	}
-	if !config.User.Null && !config.Password.Null {
-		builder.User(config.User.Value, config.Password.Value)
+	if config.User != "" && config.Password != "" {
+		builder.User(config.User, config.Password)
 	}
-	if !config.Token.Null {
-		builder.Tokens(config.Token.Value)
+	if config.Token != "" {
+		builder.Tokens(config.Token)
 	} else {
 		token, ok := os.LookupEnv("OCM_TOKEN")
 		if ok {
 			builder.Tokens(token)
 		}
 	}
-	if !config.ClientID.Null && !config.ClientSecret.Null {
-		builder.Client(config.ClientID.Value, config.ClientSecret.Value)
+	if config.ClientID != "" && config.ClientSecret != "" {
+		builder.Client(config.ClientID, config.ClientSecret)
 	}
-	if !config.Insecure.Null {
-		builder.Insecure(config.Insecure.Value)
+	if config.Insecure {
+		builder.Insecure(config.Insecure)
 	}
-	if !config.TrustedCAs.Null {
+	if config.TrustedCAs != "" {
 		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.Value)) {
-			response.Diagnostics.AddError(
-				"the value of 'trusted_cas' doesn't contain any certificate",
-				"",
-			)
-			return
+		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs)) {
+			return nil, diag.Errorf("the value of 'trusted_cas' doesn't contain any certificate")
 		}
 		builder.TrustedCAs(pool)
 	}
@@ -198,37 +217,8 @@ func (p *Provider) Configure(ctx context.Context, request provider.ConfigureRequ
 	// Create the connection:
 	connection, err := builder.BuildContext(ctx)
 	if err != nil {
-		response.Diagnostics.AddError(err.Error(), "")
-		return
+		return nil, diag.Errorf(err.Error())
 	}
 
-	// Save the connection:
-	p.logger = logger
-	p.connection = connection
-}
-
-// GetResources returns the resources supported by the provider.
-func (p *Provider) GetResources(ctx context.Context) (result map[string]provider.ResourceType,
-	diags diag.Diagnostics) {
-	result = map[string]provider.ResourceType{
-		"ocm_cluster":              &ClusterResourceType{},
-		"ocm_cluster_rosa_classic": &ClusterRosaClassicResourceType{},
-		"ocm_group_membership":     &GroupMembershipResourceType{},
-		"ocm_identity_provider":    &IdentityProviderResourceType{},
-		"ocm_machine_pool":         &MachinePoolResourceType{},
-	}
-	return
-}
-
-// GetDataSources returns the data sources supported by the provider.
-func (p *Provider) GetDataSources(ctx context.Context) (result map[string]provider.DataSourceType,
-	diags diag.Diagnostics) {
-	result = map[string]provider.DataSourceType{
-		"ocm_cloud_providers":     &CloudProvidersDataSourceType{},
-		"ocm_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
-		"ocm_groups":              &GroupsDataSourceType{},
-		"ocm_machine_types":       &MachineTypesDataSourceType{},
-		"ocm_versions":            &VersionsDataSourceType{},
-	}
-	return
+	return connection, nil
 }

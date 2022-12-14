@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"time"
@@ -26,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 )
@@ -61,17 +61,17 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 			},
 			"htpasswd": {
 				Description: "Details of the 'htpasswd' identity provider.",
-				Attributes:  t.htpasswdSchema(),
+				Attributes:  tfsdk.SingleNestedAttributes(t.htpasswdSchema()),
 				Optional:    true,
 			},
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
-				Attributes:  t.ldapSchema(),
+				Attributes:  tfsdk.SingleNestedAttributes(t.ldapSchema()),
 				Optional:    true,
 			},
 			"openid": {
 				Description: "Details of the OpenID identity provider.",
-				Attributes:  t.openidSchema(),
+				Attributes:  tfsdk.SingleNestedAttributes(t.openidSchema()),
 				Optional:    true,
 			},
 		},
@@ -79,8 +79,8 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 	return
 }
 
-func (t *IdentityProviderResourceType) htpasswdSchema() tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+func (t *IdentityProviderResourceType) htpasswdSchema() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
 		"username": {
 			Description: "User name.",
 			Type:        types.StringType,
@@ -92,11 +92,11 @@ func (t *IdentityProviderResourceType) htpasswdSchema() tfsdk.NestedAttributes {
 			Required:    true,
 			Sensitive:   true,
 		},
-	})
+	}
 }
 
-func (t *IdentityProviderResourceType) ldapSchema() tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+func (t *IdentityProviderResourceType) ldapSchema() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
 		"bind_dn": {
 			Type:     types.StringType,
 			Required: true,
@@ -120,14 +120,14 @@ func (t *IdentityProviderResourceType) ldapSchema() tfsdk.NestedAttributes {
 			Required: true,
 		},
 		"attributes": {
-			Attributes: t.ldapAttributesSchema(),
+			Attributes: tfsdk.SingleNestedAttributes(t.ldapAttributesSchema()),
 			Required:   true,
 		},
-	})
+	}
 }
 
-func (t *IdentityProviderResourceType) ldapAttributesSchema() tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+func (t *IdentityProviderResourceType) ldapAttributesSchema() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
 		"email": {
 			Type: types.ListType{
 				ElemType: types.StringType,
@@ -152,17 +152,17 @@ func (t *IdentityProviderResourceType) ldapAttributesSchema() tfsdk.NestedAttrib
 			},
 			Optional: true,
 		},
-	})
+	}
 }
 
-func (t *IdentityProviderResourceType) openidSchema() tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+func (t *IdentityProviderResourceType) openidSchema() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
 		"ca": {
 			Type:     types.StringType,
 			Optional: true,
 		},
 		"claims": {
-			Attributes: t.openidClaimsSchema(),
+			Attributes: tfsdk.SingleNestedAttributes(t.openidClaimsSchema()),
 			Required:   true,
 		},
 		"client_id": {
@@ -190,11 +190,11 @@ func (t *IdentityProviderResourceType) openidSchema() tfsdk.NestedAttributes {
 			Type:     types.StringType,
 			Required: true,
 		},
-	})
+	}
 }
 
-func (t *IdentityProviderResourceType) openidClaimsSchema() tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+func (t *IdentityProviderResourceType) openidClaimsSchema() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
 		"email": {
 			Type: types.ListType{
 				ElemType: types.StringType,
@@ -219,7 +219,7 @@ func (t *IdentityProviderResourceType) openidClaimsSchema() tfsdk.NestedAttribut
 			},
 			Optional: true,
 		},
-	})
+	}
 }
 
 func (t *IdentityProviderResourceType) NewResource(ctx context.Context,
@@ -625,7 +625,7 @@ func (r *IdentityProviderResource) ImportState(ctx context.Context, request reso
 	response *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(
 		ctx,
-		tftypes.NewAttributePath().WithAttributeName("id"),
+		path.Root("id"),
 		request,
 		response,
 	)

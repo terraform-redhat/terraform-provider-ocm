@@ -18,36 +18,37 @@ package provider
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/openshift-online/terraform-provider-ocm/provider/clusterresource"
 )
 
 type ClusterRosaClassicState struct {
-	APIURL             types.String `tfsdk:"api_url"`
-	AWSAccountID       types.String `tfsdk:"aws_account_id"`
-	AWSSubnetIDs       types.List   `tfsdk:"aws_subnet_ids"`
-	AWSPrivateLink     types.Bool   `tfsdk:"aws_private_link"`
-	Sts                *Sts         `tfsdk:"sts"`
-	CCSEnabled         types.Bool   `tfsdk:"ccs_enabled"`
-	EtcdEncryption     types.Bool   `tfsdk:"etcd_encryption"`
-	AutoScalingEnabled types.Bool   `tfsdk:"autoscaling_enabled"`
-	MinReplicas        types.Int64  `tfsdk:"min_replicas"`
-	MaxReplicas        types.Int64  `tfsdk:"max_replicas"`
-	CloudRegion        types.String `tfsdk:"cloud_region"`
-	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
-	ComputeNodes       types.Int64  `tfsdk:"compute_nodes"`
-	ConsoleURL         types.String `tfsdk:"console_url"`
-	HostPrefix         types.Int64  `tfsdk:"host_prefix"`
-	ID                 types.String `tfsdk:"id"`
-	ExternalID         types.String `tfsdk:"external_id"`
-	MachineCIDR        types.String `tfsdk:"machine_cidr"`
-	MultiAZ            types.Bool   `tfsdk:"multi_az"`
-	AvailabilityZones  types.List   `tfsdk:"availability_zones"`
-	Name               types.String `tfsdk:"name"`
-	PodCIDR            types.String `tfsdk:"pod_cidr"`
-	Properties         types.Map    `tfsdk:"properties"`
-	ServiceCIDR        types.String `tfsdk:"service_cidr"`
-	Proxy              *Proxy       `tfsdk:"proxy"`
-	State              types.String `tfsdk:"state"`
-	Version            types.String `tfsdk:"version"`
+	APIURL             types.String           `tfsdk:"api_url"`
+	AWSAccountID       types.String           `tfsdk:"aws_account_id"`
+	AWSSubnetIDs       types.List             `tfsdk:"aws_subnet_ids"`
+	AWSPrivateLink     types.Bool             `tfsdk:"aws_private_link"`
+	Sts                *Sts                   `tfsdk:"sts"`
+	CCSEnabled         types.Bool             `tfsdk:"ccs_enabled"`
+	EtcdEncryption     types.Bool             `tfsdk:"etcd_encryption"`
+	AutoScalingEnabled types.Bool             `tfsdk:"autoscaling_enabled"`
+	MinReplicas        types.Int64            `tfsdk:"min_replicas"`
+	MaxReplicas        types.Int64            `tfsdk:"max_replicas"`
+	CloudRegion        types.String           `tfsdk:"cloud_region"`
+	ComputeMachineType types.String           `tfsdk:"compute_machine_type"`
+	ComputeNodes       types.Int64            `tfsdk:"compute_nodes"`
+	ConsoleURL         types.String           `tfsdk:"console_url"`
+	HostPrefix         types.Int64            `tfsdk:"host_prefix"`
+	ID                 types.String           `tfsdk:"id"`
+	ExternalID         types.String           `tfsdk:"external_id"`
+	MachineCIDR        types.String           `tfsdk:"machine_cidr"`
+	MultiAZ            types.Bool             `tfsdk:"multi_az"`
+	AvailabilityZones  types.List             `tfsdk:"availability_zones"`
+	Name               types.String           `tfsdk:"name"`
+	PodCIDR            types.String           `tfsdk:"pod_cidr"`
+	Properties         types.Map              `tfsdk:"properties"`
+	ServiceCIDR        types.String           `tfsdk:"service_cidr"`
+	Proxy              *clusterresource.Proxy `tfsdk:"proxy"`
+	State              types.String           `tfsdk:"state"`
+	Version            types.String           `tfsdk:"version"`
 }
 
 type Sts struct {

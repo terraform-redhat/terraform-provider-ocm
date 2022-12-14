@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -26,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 )
@@ -233,7 +233,7 @@ func (r *MachinePoolResource) ImportState(ctx context.Context, request resource.
 	response *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(
 		ctx,
-		tftypes.NewAttributePath().WithAttributeName("id"),
+		path.Root("id"),
 		request,
 		response,
 	)

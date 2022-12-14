@@ -52,7 +52,7 @@ type ClusterRosaClassicResource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
+func (t *ClusterRosaClassicResourceType) GetSchema(_ context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
 	result = tfsdk.Schema{
 		Description: "OpenShift managed cluster using rosa sts.",
@@ -79,7 +79,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 			},
 			"sts": {
 				Description: "STS Configuration",
-				Attributes:  stsResource(),
+				Attributes:  tfsdk.SingleNestedAttributes(stsResource()),
 				Optional:    true,
 			},
 			"multi_az": {

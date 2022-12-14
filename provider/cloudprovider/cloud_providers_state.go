@@ -14,13 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
-
-import "github.com/hashicorp/terraform-plugin-framework/types"
+package cloudprovider
 
 type CloudProvidersState struct {
-	Search types.String          `tfsdk:"search"`
-	Order  types.String          `tfsdk:"order"`
-	Item   *CloudProviderState   `tfsdk:"item"`
-	Items  []*CloudProviderState `tfsdk:"items"`
+	Search string
+	Order  string
+	Item   *CloudProviderState
+	Items  []*CloudProviderState
+}
+
+type CloudProviderState struct {
+	ID          string
+	Name        string
+	DisplayName string
 }

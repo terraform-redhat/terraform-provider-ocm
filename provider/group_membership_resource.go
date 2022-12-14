@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"time"
@@ -26,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 )
@@ -224,7 +224,7 @@ func (r *GroupMembershipResource) ImportState(ctx context.Context, request resou
 	response *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(
 		ctx,
-		tftypes.NewAttributePath().WithAttributeName("id"),
+		path.Root("id"),
 		request,
 		response,
 	)

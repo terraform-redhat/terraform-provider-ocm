@@ -48,7 +48,7 @@ func (t *GroupsDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Sche
 			},
 			"items": {
 				Description: "Items of the list.",
-				Attributes:  t.itemSchema(),
+				Attributes:  tfsdk.ListNestedAttributes(t.itemSchema()),
 				Computed:    true,
 			},
 		},
@@ -56,25 +56,23 @@ func (t *GroupsDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Sche
 	return
 }
 
-func (t *GroupsDataSourceType) itemSchema() tfsdk.NestedAttributes {
-	return tfsdk.ListNestedAttributes(
-		map[string]tfsdk.Attribute{
-			"id": {
-				Description: "Unique identifier of the group. This is what " +
-					"should be used when referencing the group from other " +
-					"places, for example in the 'group' attribute of the " +
-					"user resource.",
-				Type:     types.StringType,
-				Computed: true,
-			},
-			"name": {
-				Description: "Short name of the group for example " +
-					"'dedicated-admins'.",
-				Type:     types.StringType,
-				Computed: true,
-			},
+func (t *GroupsDataSourceType) itemSchema() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
+		"id": {
+			Description: "Unique identifier of the group. This is what " +
+				"should be used when referencing the group from other " +
+				"places, for example in the 'group' attribute of the " +
+				"user resource.",
+			Type:     types.StringType,
+			Computed: true,
 		},
-	)
+		"name": {
+			Description: "Short name of the group for example " +
+				"'dedicated-admins'.",
+			Type:     types.StringType,
+			Computed: true,
+		},
+	}
 }
 
 func (t *GroupsDataSourceType) NewDataSource(ctx context.Context,
