@@ -71,6 +71,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Description: "Name of the cluster.",
 				Type:        types.StringType,
 				Required:    true,
+				//PlanModifiers:
 			},
 			"cloud_region": {
 				Description: "Cloud region identifier, for example 'us-east-1'.",
@@ -149,9 +150,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
-				},
+				//PlanModifiers: ValueDoesNotChangeModifier,
 			},
 			"aws_account_id": {
 				Description: "Identifier of the AWS account.",
@@ -322,6 +321,7 @@ func createClassicClusterObject(ctx context.Context,
 	builder.CCS(ccs)
 
 	aws := cmv1.NewAWS()
+
 	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
 		aws.AccountID(state.AWSAccountID.Value)
 	}
@@ -508,12 +508,45 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		return
 	}
 
+	// Find the cluster:
+	get, err := r.collection.Cluster(state.ID.Value).Get().SendContext(ctx)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't find cluster",
+			fmt.Sprintf(
+				"Can't find cluster with identifier '%s': %v",
+				state.ID.Value, err,
+			),
+		)
+		return
+	}
+	object := get.Body()
+	if object.State() != cmv1.ClusterStateReady {
+		r.logger.Debug(ctx, "NOT READY")
+		//response.Diagnostics.AddError(
+		//	"Can't update cluster",
+		//	fmt.Sprintf(
+		//		"Can't update cluster, cluster state with identifier %s is not `ready`, state: %s",
+		//		state.ID.Value, object.State(),
+		//	),
+		//)
+		//return
+	}
+
+	// etcd_encryption
+	// multi_az
+	// name
+
 	// Send request to update the cluster:
 	builder := cmv1.NewCluster()
 	var nodes *cmv1.ClusterNodesBuilder
+	r.logger.Debug(ctx, "******* before patch")
 	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
 	if ok {
-		nodes.Compute(int(compute))
+		r.logger.Debug(ctx, "******* in patch")
+		r.logger.Debug(ctx, fmt.Sprintf("COMPUTE: %v", compute))
+		_ = nodes.Compute(int(compute))
+		r.logger.Debug(ctx, "******* in patch 2")
 	}
 	if !nodes.Empty() {
 		builder.Nodes(nodes)
@@ -542,7 +575,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		)
 		return
 	}
-	object := update.Body()
+	object = update.Body()
 
 	// Update the state:
 	populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
