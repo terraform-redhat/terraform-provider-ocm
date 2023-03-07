@@ -16,29 +16,16 @@ provider "ocm" {
   token = var.token
   url = var.url
 }
-# create account roles
-module account_role{
-  source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.1"
-
-  create_operator_roles = false
-  create_oidc_provider = false
-  create_account_roles = true
-
-  account_role_prefix = var.account_role_prefix
-  ocm_environment = var.ocm_env
-  rosa_openshift_version=var.rosa_openshift_version
-}
 
 locals {
   sts_roles = {
-      role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role",
-      support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Support-Role",
-      instance_iam_roles = {
-        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-ControlPlane-Role",
-        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
-      },
-      operator_role_prefix = var.operator_role_prefix,
+    role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role",
+    support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Support-Role",
+    instance_iam_roles = {
+      master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-ControlPlane-Role",
+      worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
+    },
+    operator_role_prefix = var.operator_role_prefix,
   }
 }
 
@@ -55,7 +42,6 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   }
   sts = local.sts_roles
   destroy_timeout = 120
-  depends_on = [module.account_role]
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {
@@ -69,15 +55,15 @@ data "ocm_rosa_operator_roles" "operator_roles" {
 }
 
 module operator_roles {
-    source = "terraform-redhat/rosa-sts/aws"
-    version = "0.0.1"
+  source = "terraform-redhat/rosa-sts/aws"
+  version = "0.0.3"
 
-    create_operator_roles = true
-    create_oidc_provider = true
-    create_account_roles = false
+  create_operator_roles = true
+  create_oidc_provider = true
+  create_account_roles = false
 
-    cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
-    rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
-    rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
-    operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
+  cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+  rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
+  rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
+  operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
