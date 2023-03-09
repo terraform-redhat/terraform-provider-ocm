@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = "0.0.1"
+      version = "0.0.2"
       source  = "terraform.local/local/ocm"
     }
   }
