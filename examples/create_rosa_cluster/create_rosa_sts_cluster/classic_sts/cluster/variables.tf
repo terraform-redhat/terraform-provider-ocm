@@ -11,3 +11,7 @@ variable url {
     type = string
     default = "https://api.openshift.com"
 }
+
+variable account_role_prefix {
+    type = string
+}
