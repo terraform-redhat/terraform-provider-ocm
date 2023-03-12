@@ -46,12 +46,49 @@ In order to use the provider inside your terraform configuration you need to imp
 
 Get an offline token from [https://console.redhat.com/openshift/token/rosa](https://console.redhat.com/openshift/token/rosa)
 
-* Create ROSA account IAM roles: 
-
+# Create ROSA account IAM roles: 
 Detailed ROSA Account Roles and Policies can be found [here](https://docs.openshift.com/rosa/rosa_architecture/rosa-sts-about-iam-resources.html)
 
+## Sample Terraform Manifest File
 ```
-rosa create account-roles
+variable ocm_environment {
+    type = string
+    default = "production"
+}
+
+variable openshift_version {
+    type = string
+    default = "4.12"
+}
+
+variable account_role_prefix {
+    type = string
+}
+
+
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 4.20.0"
+    }
+  }
+}
+
+
+module "create_account_roles"{
+  source = "terraform-redhat/rosa-sts/aws"
+  version = "0.0.2"
+
+  create_operator_roles = false
+  create_oidc_provider = false
+  create_account_roles = true
+
+  account_role_prefix =  var.account_role_prefix
+  ocm_environment =  var.ocm_environment
+  rosa_openshift_version=  var.openshift_version
+}
+
 ```
 
 * Least AWS Permissions required to run the terraform
@@ -117,6 +154,10 @@ variable zone {
     type = string
 }
 
+variable account_role_prefix {
+    type = string
+}
+
 provider "ocm" {
   token = var.token
 }
@@ -136,11 +177,11 @@ terraform {
 
 locals {
   sts_roles = {
-      role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Installer-Role",
-      support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Support-Role",
+      role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role",
+      support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Support-Role",
       instance_iam_roles = {
-        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-ControlPlane-Role",
-        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Worker-Role"
+        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-ControlPlane-Role",
+        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
       },
       operator_role_prefix = var.operator_role_prefix,
   }
@@ -153,34 +194,40 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   cloud_region   = var.region
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = [var.zone]
-  disable_waiting_in_destroy = false
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   sts = local.sts_roles
+  # disable_waiting_in_destroy = false
+  # destroy_timeout in minutes
+  destroy_timeout = 60
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {
   cluster = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+  # timeout in minutes
+  timeout = 60
 }
 
 data "ocm_rosa_operator_roles" "operator_roles" {
   operator_role_prefix = var.operator_role_prefix
+  account_role_prefix = var.account_role_prefix
 }
 
 module operator_roles {
-    source = "terraform-redhat/rosa-sts/aws"
-    version = "0.0.1"
-    cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
-    rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
-    rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
-    operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
+  source = "terraform-redhat/rosa-sts/aws"
+  version = "0.0.2"
+
+  create_operator_roles = true
+  create_oidc_provider = true
+  create_account_roles = false
+
+  cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+  rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
+  rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
+  operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
 
-resource "ocm_cluster_wait" "rosa_cluster" {
-￼  cluster = ocm_cluster.rosa_cluster.id
-   timeout = 30 
-￼}
 ```
 
 ## Development Introduction

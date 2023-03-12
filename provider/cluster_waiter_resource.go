@@ -28,7 +28,7 @@ const (
 	defaultTimeoutInMinutes   = int64(60)
 	nonPositiveTimeoutSummary = "Can't poll cluster state with a non-positive timeout"
 	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
-	pollingIntervalInMinutes  = 1
+	pollingIntervalInMinutes  = 2
 )
 
 func (t *ClusterWaiterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
@@ -97,8 +97,9 @@ func (r *ClusterWaiterResource) Create(ctx context.Context,
 	}
 
 	// Wait till the cluster is ready:
-	object, err := r.isClusterReady(state.Cluster.Value, ctx, timeout)
+	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.Value, ctx, timeout)
 	if err != nil {
+
 		response.Diagnostics.AddError(
 			"Can't poll cluster state",
 			fmt.Sprintf(
@@ -161,4 +162,17 @@ func (r *ClusterWaiterResource) isClusterReady(clusterId string, ctx context.Con
 	}
 
 	return object, err
+}
+
+func (r *ClusterWaiterResource) retryClusterReadiness(attempts int, sleep time.Duration, clusterId string, ctx context.Context, timeout int64) (*cmv1.Cluster, error) {
+	object, err := r.isClusterReady(clusterId, ctx, timeout)
+	if err != nil {
+		if attempts--; attempts > 0 {
+			time.Sleep(sleep)
+			return r.retryClusterReadiness(attempts, 2*sleep, clusterId, ctx, timeout)
+		}
+		return object, err
+	}
+
+	return object, nil
 }
