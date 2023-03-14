@@ -183,6 +183,68 @@ resource "ocm_cluster_wait" "rosa_cluster" {
 ￼}
 ```
 
+## Advanced Usages
+
+### Bring your own VPC
+
+To deploy ROSA to an existing VPC, the end user needs to provide subnet ids by editing aws_subnet_ids attribute.
+
+```
+resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
+  name           = var.cluster_name
+  cloud_region   = var.region
+  aws_account_id     = data.aws_caller_identity.current.account_id
+  aws_subnet_ids = [var.subnet_ids]
+  availability_zones = [var.zone]
+  disable_waiting_in_destroy = false
+  properties = {
+    rosa_creator_arn = data.aws_caller_identity.current.arn
+  }
+  sts = local.sts_roles
+}
+```
+
+### Private Link Cluster
+
+To deploy ROSA with private link, the end user needs to add multi_az = true
+
+**NOTES** It is users' responsibility to make sure the VPC has appropriate egress routes to fullil [rosa firewall prerequisites](https://docs.openshift.com/rosa/rosa_install_access_delete_clusters/rosa_getting_started_iam/rosa-aws-prereqs.html#osd-aws-privatelink-firewall-prerequisites_prerequisites)
+
+```
+resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
+  name           = var.cluster_name
+  cloud_region   = var.region
+  aws_account_id     = data.aws_caller_identity.current.account_id
+  aws_subnet_ids = [var.subnet_ids]
+  availability_zones = [var.zone]
+  aws_private_link = true
+  disable_waiting_in_destroy = false
+  properties = {
+    rosa_creator_arn = data.aws_caller_identity.current.arn
+  }
+  sts = local.sts_roles
+}
+```
+
+### Multi AZ
+
+To Deploy ROSA into multiple availability zones, end user needs to add multi_az = true
+
+```
+resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
+  name           = var.cluster_name
+  cloud_region   = var.region
+  aws_account_id     = data.aws_caller_identity.current.account_id
+  multi_az = true
+  availability_zones = ["zone1", "zone2", "zone3"]
+  disable_waiting_in_destroy = false
+  properties = {
+    rosa_creator_arn = data.aws_caller_identity.current.arn
+  }
+  sts = local.sts_roles
+}
+```
+
 ## Development Introduction
 Running `terraform plan` against a local build of OCM provider can be done by those steps:
 1. Run  ```make install ```. After running ```make install``` you will find the ocm provider binary file in the directory: 
